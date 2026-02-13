@@ -58,7 +58,6 @@ GPIO_PinState led_state = GPIO_PIN_RESET;
 uint32_t last_deb_time = 0;
 uint32_t last_move_time = 0;
 
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +68,34 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void light_up(led_color led) {
+	switch (led) {
+	case RED:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+		break;
+	case ORANGE:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+		break;
+	case GREEN:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+		break;
+	}
+}
+
+void light_down(led_color led) {
+	switch (led) {
+	case RED:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+		break;
+	case ORANGE:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+		break;
+	case GREEN:
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+		break;
+	}
+}
 
 bool is_pressed() {
 	return !button_state;
@@ -161,13 +188,13 @@ int main(void)
 
 		  if (!is_printing && HAL_GetTick() - duration_start_time > PAUSE_DURATION) {
 				  is_printing = true;
-				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+				  light_up(GREEN);
 				  duration_start_time = HAL_GetTick();
 		  } else if (
 				(sym == MORSE_DASH && HAL_GetTick() - duration_start_time > DASH_DURATION)
 				|| (sym == MORSE_DOT && HAL_GetTick() - duration_start_time > DOT_DURATION)
 			  ) {
-				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+				  light_down(GREEN);
 				  is_printing = false;
 				  duration_start_time = HAL_GetTick();
 				  if (!my_buf_next(&buf, &sym)) {
@@ -185,15 +212,15 @@ int main(void)
 		  		  break;
 		  	  case -1:
 		  		  if (was_long_press) {
-		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+		  			  light_up(RED);
 					  HAL_Delay(5);
-					  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+					  light_down(RED);
 		  			  my_buf_write(&buf, MORSE_DASH);
 		  			  was_long_press = false;
 		  		  } else {
-		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+		  			  light_up(ORANGE);
 		  			  HAL_Delay(5);
-		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+		  			  light_down(ORANGE);
 		  			  my_buf_write(&buf, MORSE_DOT);
 		  		  }
 		  		  break;

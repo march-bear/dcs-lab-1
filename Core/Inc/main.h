@@ -37,6 +37,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+typedef enum {
+	GREEN,
+	RED,
+	ORANGE
+} led_color;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
