@@ -139,15 +139,17 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  bool buf[8] = {0};
-  int buf_cap = 8;
-  int buf_size = 0;
-  int buf_curr = 0;
+
+  my_buf buf = (my_buf) {};
+  my_buf_init(&buf);
+
   bool is_showing_buf = false;
   bool was_long_press = false;
   bool is_printing = false;
 
-  uint32_t last_print_time = 0;
+  uint32_t duration_start_time = 0;
+
+  morse sym;
 
   while (1)
   {
@@ -156,35 +158,26 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  if (is_showing_buf) {
 		  is_changed(GPIOC, GPIO_PIN_15);
-		  if (buf_curr == buf_size) {
-			  buf_size = 0;
-			  buf_curr = 0;
-			  is_showing_buf = false;
-			  continue;
-		  }
 
-		  if (!is_printing) {
-			  if (HAL_GetTick() - last_print_time > PAUSE_DURATION) {
+		  if (!is_printing && HAL_GetTick() - duration_start_time > PAUSE_DURATION) {
 				  is_printing = true;
 				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
-			  }
-		  } else {
-			  if (
-				(buf[buf_curr] && HAL_GetTick() - (last_print_time + PAUSE_DURATION) > DASH_DURATION)
-				|| (!buf[buf_curr] && HAL_GetTick() - (last_print_time + PAUSE_DURATION) > DOT_DURATION)
+				  duration_start_time = HAL_GetTick();
+		  } else if (
+				(sym == MORSE_DASH && HAL_GetTick() - duration_start_time > DASH_DURATION)
+				|| (sym == MORSE_DOT && HAL_GetTick() - duration_start_time > DOT_DURATION)
 			  ) {
 				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
 				  is_printing = false;
-				  last_print_time = HAL_GetTick();
-				  buf_curr++;
-			  }
+				  duration_start_time = HAL_GetTick();
+				  if (!my_buf_next(&buf, &sym)) {
+					  my_buf_reset(&buf);
+					  is_showing_buf = false;
+				  }
 		  }
 	  } else {
 		  if (is_long_press()) {
 			  was_long_press = true;
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
-		  } else {
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 		  }
 
 		  switch (is_changed(GPIOC, GPIO_PIN_15)) {
@@ -192,37 +185,28 @@ int main(void)
 		  		  break;
 		  	  case -1:
 		  		  if (was_long_press) {
-		  			  buf[buf_size] = true;
+		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_SET);
+					  HAL_Delay(5);
+					  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+		  			  my_buf_write(&buf, MORSE_DASH);
 		  			  was_long_press = false;
 		  		  } else {
-		  			  buf[buf_size] = false;
+		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+		  			  HAL_Delay(5);
+		  			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+		  			  my_buf_write(&buf, MORSE_DOT);
 		  		  }
-		  		  buf_size++;
 		  		  break;
 		  	  default:
 		  		  break;
 		  }
 
-		  if (buf_size != 0
-				  && (
-						  (HAL_GetTick() - last_move_time > SHOW_SAVED_DELAY && !is_pressed())
-						  || buf_size == buf_cap
-					 )
+		  if (
+				  (!my_buf_empty(&buf) && HAL_GetTick() - last_move_time > SHOW_SAVED_DELAY && !is_pressed())
+				  || my_buf_full(&buf)
 		  ) {
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-
-			  last_print_time = HAL_GetTick();
+			  my_buf_next(&buf, &sym);
+			  duration_start_time = HAL_GetTick();
 			  is_showing_buf = true;
 		  }
 	  }
