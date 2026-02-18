@@ -28,3 +28,10 @@ void light_down(led_color led) {
 		break;
 	}
 }
+
+void light_blink(led_color led) {
+	light_up(led);
+	HAL_Delay(BLINK_TIME);
+	light_down(led);
+}
+

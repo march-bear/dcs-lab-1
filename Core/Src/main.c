@@ -145,15 +145,11 @@ int main(void)
 		  		  break;
 		  	  case -1:
 		  		  if (was_long_press) {
-		  			  light_up(RED);
-					  HAL_Delay(5);
-					  light_down(RED);
+		  			  light_blink(RED);
 		  			  morse_buf_write(&buf, MORSE_DASH);
 		  			  was_long_press = false;
 		  		  } else {
-		  			  light_up(ORANGE);
-		  			  HAL_Delay(5);
-		  			  light_down(ORANGE);
+		  			  light_blink(ORANGE);
 		  			  morse_buf_write(&buf, MORSE_DOT);
 		  		  }
 		  		  break;
